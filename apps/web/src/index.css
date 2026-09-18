@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Identidade: azul institucional + verde-água, sobre neutros frios. Contraste mínimo AA nos pares usados. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e8ff;
+  --color-brand-200: #bcd7ff;
+  --color-brand-300: #8ebeff;
+  --color-brand-400: #599aff;
+  --color-brand-500: #3377f5;
+  --color-brand-600: #1f5bd8;
+  --color-brand-700: #1a48ad;
+  --color-brand-800: #1b3f8a;
+  --color-brand-900: #1c376d;
+
+  --color-aqua-50: #effefb;
+  --color-aqua-100: #c8fff3;
+  --color-aqua-200: #91fee8;
+  --color-aqua-300: #52f3d8;
+  --color-aqua-400: #1fdcc3;
+  --color-aqua-500: #06c0aa;
+  --color-aqua-600: #009a8b;
+  --color-aqua-700: #067b71;
+  --color-aqua-800: #0a625b;
+  --color-aqua-900: #0d514c;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
+  font-family: var(--font-sans);
+}
+
+/* Foco visível para navegação por teclado, em todos os elementos interativos. */
+:focus-visible {
+  outline: 3px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+dialog::backdrop {
+  background: rgb(15 23 42 / 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

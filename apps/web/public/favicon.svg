@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Água em Rede">
+  <rect width="64" height="64" rx="14" fill="#1a48ad"/>
+  <path d="M32 10c-9 12-15 19-15 27a15 15 0 0 0 30 0c0-8-6-15-15-27z" fill="#52f3d8"/>
+  <path d="M24 38a8 8 0 0 0 8 8" fill="none" stroke="#1a48ad" stroke-width="3" stroke-linecap="round"/>
+</svg>

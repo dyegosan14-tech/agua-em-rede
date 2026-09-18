@@ -1,0 +1,16 @@
+{
+  "name": "@aer/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Leitura e validação (Zod) das variáveis de ambiente. Falha na inicialização, sem ecoar valores secretos.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

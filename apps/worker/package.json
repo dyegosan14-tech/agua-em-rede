@@ -1,0 +1,30 @@
+{
+  "name": "@aer/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Processo de worker (BullMQ): processamento assíncrono e manutenção. Compartilha os pacotes de domínio com a API.",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@aer/config": "*",
+    "@aer/database": "*",
+    "@aer/domain": "*",
+    "@node-rs/argon2": "^2.2.1",
+    "bullmq": "^6.3.7",
+    "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.11.1",
+    "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "wkx": "^0.5.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pino-pretty": "^13.1.3"
+  }
+}
