@@ -1,0 +1,17 @@
+{
+  "name": "@aer/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Esquemas Zod compartilhados entre API e frontend (fonte única dos contratos HTTP).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@aer/domain": "*",
+    "zod": "^4.6.5"
+  }
+}

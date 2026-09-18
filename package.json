@@ -1,0 +1,43 @@
+{
+  "name": "agua-em-rede",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plataforma de monitoramento e redução de perdas na distribuição de água (MVP).",
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup:env": "node scripts/setup-env.mjs",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down",
+    "db:migrate": "npm run migrate -w @aer/database",
+    "db:seed": "npm run seed -w @aer/database",
+    "dev": "concurrently -k -n api,worker,web -c blue,cyan,green \"npm run dev -w @aer/api\" \"npm run dev -w @aer/worker\" \"npm run dev -w @aer/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "openapi": "npm run openapi -w @aer/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^20.19.43",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.13",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11"
+  }
+}
