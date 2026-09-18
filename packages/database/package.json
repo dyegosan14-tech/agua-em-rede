@@ -1,0 +1,31 @@
+{
+  "name": "@aer/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Schema Drizzle (tipagem), migrations SQL explícitas, migrator, seed demonstrativo e suporte a testes.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./test-support": "./test-support/index.ts"
+  },
+  "scripts": {
+    "migrate": "tsx src/cli/migrate.ts",
+    "seed": "tsx src/cli/seed.ts",
+    "dev:pglite": "tsx test-support/serve.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@aer/config": "*",
+    "@aer/domain": "*",
+    "@node-rs/argon2": "^2.2.1",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.23.0",
+    "wkx": "^0.5.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-postgis": "^0.2.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
+    "@types/pg": "^8.23.1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@aer/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Regras de negócio puras (sem I/O): papéis, permissões e, nas próximas etapas, regras de detecção e máquinas de estado.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
