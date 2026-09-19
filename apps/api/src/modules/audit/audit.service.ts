@@ -9,7 +9,18 @@ export type AuditAction =
   | 'user.created'
   | 'user.updated'
   | 'user.password.reset'
-  | 'user.sessions.revoked';
+  | 'user.sessions.revoked'
+  | 'sector.created'
+  | 'sector.updated'
+  | 'device.created'
+  | 'device.updated'
+  | 'telemetry.ingested'
+  | 'simulation.run'
+  | 'alert.transitioned'
+  | 'work_order.created'
+  | 'work_order.updated';
+
+
 
 export interface AuditEntry {
   organizationId: string | null;
