@@ -1,4 +1,16 @@
-import { CircleUserRound, Droplets, House, LogOut, Users, type LucideIcon } from 'lucide-react';
+import {
+  AlertTriangle,
+  CircleUserRound,
+  Droplets,
+  Gauge,
+  House,
+  Layers,
+  LogOut,
+  TrendingUp,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Permission } from '@aer/domain';
 import { NavLink, Outlet } from 'react-router';
 import { useLogout, useSession } from '../features/auth/session';
@@ -15,6 +27,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Início', icon: House, end: true },
+  { to: '/indicadores', label: 'Indicadores & KPIs', icon: TrendingUp, permission: 'analytics:read' },
+  { to: '/alertas', label: 'Alertas', icon: AlertTriangle, permission: 'alerts:read' },
+  { to: '/ordens-servico', label: 'Ordens de Serviço', icon: Wrench, permission: 'work-orders:read' },
+  { to: '/setores', label: 'Setores', icon: Layers, permission: 'sectors:read' },
+  { to: '/dispositivos', label: 'Dispositivos', icon: Gauge, permission: 'devices:read' },
   { to: '/usuarios', label: 'Usuários', icon: Users, permission: 'users:read' },
   { to: '/conta', label: 'Minha conta', icon: CircleUserRound },
 ];
