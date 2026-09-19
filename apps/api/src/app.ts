@@ -7,14 +7,26 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import type { Redis } from 'ioredis';
 import type pg from 'pg';
 import type { RateLimiter } from './lib/rate-limiter';
+import { alertsRoutes } from './modules/alerts/alerts.routes';
+import { AlertsService } from './modules/alerts/alerts.service';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { AuditService } from './modules/audit/audit.service';
 import { authRoutes } from './modules/auth/auth.routes';
 import { AuthService } from './modules/auth/auth.service';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
+import { devicesRoutes } from './modules/devices/devices.routes';
+import { DevicesService } from './modules/devices/devices.service';
 import { healthRoutes } from './modules/health/health.routes';
 import { organizationsRoutes } from './modules/organizations/organizations.routes';
+import { sectorsRoutes } from './modules/sectors/sectors.routes';
+import { SectorsService } from './modules/sectors/sectors.service';
+import { telemetryRoutes } from './modules/telemetry/telemetry.routes';
+import { TelemetryService } from './modules/telemetry/telemetry.service';
 import { usersRoutes } from './modules/users/users.routes';
 import { UsersService } from './modules/users/users.service';
+import { workOrdersRoutes } from './modules/work-orders/work-orders.routes';
+import { WorkOrdersService } from './modules/work-orders/work-orders.service';
 import { registerAuth } from './plugins/auth';
 import { registerErrorHandling } from './plugins/error-handler';
 import { registerOpenApi } from './plugins/openapi';
@@ -80,6 +92,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
 
   const usersService = new UsersService({ db, passwords: deps.passwords, audit, clock });
+  const sectorsService = new SectorsService({ db, audit });
+  const devicesService = new DevicesService({ db, audit });
+  const alertsService = new AlertsService({ db, audit, clock });
+  const workOrdersService = new WorkOrdersService({ db, audit, clock });
+  const telemetryService = new TelemetryService({ db, alerts: alertsService, audit, clock });
 
   await app.register((scope) => healthRoutes(scope, { pool: deps.pool, redis: deps.redis }), { prefix: '/health' });
   await app.register(
@@ -96,7 +113,16 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   );
   await app.register((scope) => organizationsRoutes(scope, { db }), { prefix: '/api/organizations' });
   await app.register((scope) => usersRoutes(scope, { usersService }), { prefix: '/api/users' });
+  await app.register((scope) => sectorsRoutes(scope, { sectorsService }), { prefix: '/api/sectors' });
+  await app.register((scope) => devicesRoutes(scope, { devicesService }), { prefix: '/api/devices' });
+  await app.register((scope) => telemetryRoutes(scope, { telemetryService }), { prefix: '/api/telemetry' });
+  await app.register((scope) => alertsRoutes(scope, { alertsService }), { prefix: '/api/alerts' });
+  await app.register((scope) => workOrdersRoutes(scope, { workOrdersService }), { prefix: '/api/work-orders' });
+  await app.register((scope) => analyticsRoutes(scope, { db }), { prefix: '/api/analytics' });
+  await app.register((scope) => dashboardRoutes(scope, { db }), { prefix: '/api/dashboard' });
   await app.register((scope) => auditRoutes(scope, { db }), { prefix: '/api/audit-logs' });
 
   return app;
+
+
 }

@@ -157,6 +157,7 @@ const badgeTones = {
   info: 'bg-brand-50 text-brand-900 ring-brand-200',
   ok: 'bg-aqua-50 text-aqua-900 ring-aqua-300',
   warn: 'bg-amber-50 text-amber-900 ring-amber-300',
+  critical: 'bg-red-50 text-red-900 ring-red-300',
 } as const;
 
 /** Sempre com texto: o significado nunca depende apenas da cor. */
