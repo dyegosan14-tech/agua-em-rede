@@ -6,8 +6,15 @@ import { BrowserRouter } from 'react-router';
 import { App } from './App';
 import { ApiError } from './lib/api';
 import './index.css';
+import 'leaflet/dist/leaflet.css';
 
 configureZodLocale();
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js');
+  });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

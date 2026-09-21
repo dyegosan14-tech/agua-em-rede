@@ -6,35 +6,28 @@ Plataforma para monitoramento de pressão e vazão e gestão da redução de per
 > O sistema não afirma que toda anomalia é vazamento, não classifica ligações clandestinas, não promete localização exata
 > de vazamentos, não mistura dados simulados com reais e não comanda válvulas nem bombas.
 
-## Estado do projeto: etapa 1 de 6
+## Estado do projeto: etapas 1 a 5 concluídas
 
 | Etapa | Escopo | Situação |
 |---|---|---|
-| 1 | Estrutura, infraestrutura, banco e autenticação | **Implementada** (este commit) |
-| 2 | Setores, dispositivos e mapa | Não iniciada |
-| 3 | Ingestão de telemetria e simulador | Não iniciada |
-| 4 | Regras e alertas | Não iniciada |
-| 5 | Ordens de serviço e aplicação de campo (PWA) | Não iniciada |
-| 6 | Indicadores, E2E e documentação final | Não iniciada |
+| 1 | Estrutura, infraestrutura, banco e autenticação | **Implementada** |
+| 2 | Setores, dispositivos e mapa GIS interativo | **Implementada** |
+| 3 | Ingestão de telemetria, credenciais IoT e gráficos | **Implementada** |
+| 4 | Regras de detecção, janelas de manutenção e alertas | **Implementada** |
+| 5 | Ordens de serviço, evidências fotográficas e PWA | **Implementada** |
+| 6 | Indicadores, E2E e documentação final | Próxima etapa |
 
-### O que existe na etapa 1
+### O que está implementado
 
-- Monorepo (npm workspaces): `apps/{api,worker,web}`, `packages/{config,contracts,domain,database}`.
-- **Banco**: 6 migrations SQL explícitas (PostGIS, SRID 4326) com **todas** as entidades do modelo de dados
-  (organizações, usuários, sessões, setores, ativos, dispositivos, credenciais, medições, regras, alertas, ordens, anexos,
-  janelas de manutenção, auditoria, simulações). Só as de identidade/auditoria são usadas pela aplicação por enquanto.
-- **Autenticação**: sessão no servidor, token opaco (só o SHA-256 vai ao banco), cookie HttpOnly/SameSite=Strict
-  (`Secure` + prefixo `__Host-` em produção), Argon2id, CSRF (HMAC por sessão + verificação de `Origin`), expiração
-  absoluta (12 h) e por inatividade (120 min), revogação, rate limit de login (Redis, com degradação para memória).
-- **Autorização** por perfil (ADMIN, OPERATOR, TECHNICIAN, VIEWER) e isolamento por organização (também no banco, via FKs compostas).
-- **Módulos da API**: `auth`, `organizations`, `users`, `audit`, `health`. OpenAPI em `/api/docs` (dev) e `docs/api/openapi.json`.
-- **Worker** (BullMQ): job de manutenção `purge-stale-sessions`, com tentativas limitadas e backoff.
-- **Web**: login, shell (menu lateral no desktop, barra inferior no celular), início, usuários (CRUD, filtros, paginação),
-  minha conta (troca de senha), banner "Ambiente demonstrativo — dados simulados", estados de carregando/erro/vazio/offline/
-  dados desatualizados/sem permissão. Horários em America/Recife.
-
-**Não existe ainda**: mapa, telemetria, simulador, regras, alertas, ordens de serviço, aplicação de campo/PWA, indicadores,
-upload de fotos, testes E2E oficiais. A tela inicial diz isso explicitamente.
+- **Monorepo**: `apps/{api,worker,web}`, `packages/{config,contracts,domain,database}`.
+- **Banco de Dados**: PostGIS (SRID 4326) com polígonos GeoJSON de setores e coordenadas de sensores em Recife, auditoria e isolamento multitenant estrito.
+- **Autenticação & Segurança**: Sessões no servidor com tokens opacos SHA-256, cookies `HttpOnly` / `SameSite=Strict`, proteção CSRF por HMAC, rate limit (Redis/memória) e RBAC (ADMIN, OPERATOR, TECHNICIAN, VIEWER).
+- **Mapa Georreferenciado Interativo (GIS)**: Tela `/mapa` construída com Leaflet, exibindo limites poligonais de setores de abastecimento (Centro Histórico, Boa Viagem, Casa Forte, etc.), localização de sensores de pressão e medidores de vazão com pins customizados e status operacional em tempo real.
+- **Gráficos de Telemetria**: Visualização responsiva de séries temporais de pressão (mca) e vazão (m³/h) com faixas operacionais mín/máx e marcadores de anomalia.
+- **Ingestão Direta IoT & Credenciais**: Endpoint `POST /api/telemetry/device-ingest` com cabeçalho `X-Device-Key`, segredos criptográficos de 256 bits gerados na UI web com hash SHA-256 no banco e cópia facilitada com exemplos em cURL.
+- **Detecção de Falha de Comunicação**: Job de background no BullMQ (`check-no-communication`) que avalia sensores inativos a cada 5 minutos e abre alertas `NO_COMMUNICATION` automaticamente.
+- **Regras e Janelas de Manutenção**: Módulos completos para cadastro de regras (`/api/detection-rules`) e agendamento de janelas de manutenção preventiva (`/api/maintenance-windows`) para silenciar alarmes durante intervenções na rede.
+- **Ordens de Serviço & PWA de Campo**: Gestão de reparos e contenção de vazamentos com estimativa de volume salvo (m³), captura e upload de fotos/evidências de campo com hash SHA-256, Web App Manifest e Service Worker para suporte offline em smartphones e tablets.
 
 ## Requisitos
 

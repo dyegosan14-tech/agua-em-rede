@@ -1,12 +1,16 @@
 import {
   listWorkOrdersResponseSchema,
+  workOrderAttachmentSchema,
   workOrderDtoSchema,
   type CreateWorkOrderRequest,
   type ListWorkOrdersQuery,
   type UpdateWorkOrderRequest,
+  type UploadAttachmentRequest,
+  type WorkOrderAttachmentDto,
   type WorkOrderDto,
 } from '@aer/contracts';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { api } from '../../lib/api';
 
 export type WorkOrdersFilter = Partial<Omit<ListWorkOrdersQuery, 'limit' | 'offset'>> & {
@@ -74,6 +78,42 @@ export function useUpdateWorkOrder() {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
         queryClient.invalidateQueries({ queryKey: ['analytics'] }),
       ]);
+    },
+  });
+}
+
+export function useWorkOrderAttachments(workOrderId: string | null) {
+  return useQuery({
+    queryKey: ['work-order-attachments', workOrderId],
+    queryFn: () =>
+      workOrderId
+        ? api<WorkOrderAttachmentDto[]>(`/work-orders/${workOrderId}/attachments`, {
+            schema: z.array(workOrderAttachmentSchema),
+          })
+        : [],
+    enabled: Boolean(workOrderId),
+  });
+}
+
+export function useUploadWorkOrderAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      workOrderId,
+      input,
+    }: {
+      workOrderId: string;
+      input: UploadAttachmentRequest;
+    }) =>
+      api<WorkOrderAttachmentDto>(`/work-orders/${workOrderId}/attachments`, {
+        method: 'POST',
+        body: input,
+        schema: workOrderAttachmentSchema,
+      }),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['work-order-attachments', variables.workOrderId],
+      });
     },
   });
 }

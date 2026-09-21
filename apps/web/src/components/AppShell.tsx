@@ -6,6 +6,7 @@ import {
   House,
   Layers,
   LogOut,
+  MapPin,
   TrendingUp,
   Users,
   Wrench,
@@ -27,6 +28,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Início', icon: House, end: true },
+  { to: '/mapa', label: 'Mapa da Rede', icon: MapPin, permission: 'sectors:read' },
   { to: '/indicadores', label: 'Indicadores & KPIs', icon: TrendingUp, permission: 'analytics:read' },
   { to: '/alertas', label: 'Alertas', icon: AlertTriangle, permission: 'alerts:read' },
   { to: '/ordens-servico', label: 'Ordens de Serviço', icon: Wrench, permission: 'work-orders:read' },

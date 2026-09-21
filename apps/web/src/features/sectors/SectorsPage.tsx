@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { Calendar, Clock, Plus, Search } from 'lucide-react';
+import { Calendar, Clock, Plus, Search, Wrench, X } from 'lucide-react';
 import type { SectorDto } from '@aer/contracts';
 import { hasPermission } from '@aer/domain';
 import { EmptyState, ErrorState, FreshnessNote, LoadingState } from '../../components/states';
 import { Badge, Button, Modal, PageHeader, TextField } from '../../components/ui';
 import { useSession } from '../auth/session';
-import { useCreateSector, useSectors, type SectorsFilter } from './sectors-api';
+import {
+  useCancelMaintenanceWindow,
+  useCreateMaintenanceWindow,
+  useCreateSector,
+  useMaintenanceWindows,
+  useSectors,
+  type SectorsFilter,
+} from './sectors-api';
 
 const DAYS_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -17,14 +24,24 @@ export function SectorsPage() {
   const [selectedSector, setSelectedSector] = useState<SectorDto | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Form state
+  // Form state - Sector
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Form state - Maintenance Window
+  const [isScheduleMwOpen, setIsScheduleMwOpen] = useState(false);
+  const [mwReason, setMwReason] = useState('');
+  const [mwStartsAt, setMwStartsAt] = useState('');
+  const [mwEndsAt, setMwEndsAt] = useState('');
+  const [mwError, setMwError] = useState<string | null>(null);
+
   const { data, isLoading, isError, error, refetch, dataUpdatedAt, isFetching } = useSectors(filter);
+  const { data: mwData, isLoading: mwLoading } = useMaintenanceWindows(selectedSector?.id);
   const createMutation = useCreateSector();
+  const createMwMutation = useCreateMaintenanceWindow();
+  const cancelMwMutation = useCancelMaintenanceWindow();
 
   if (!session) return null;
   const canWrite = hasPermission(session.user.role, 'sectors:write');
@@ -50,6 +67,26 @@ export function SectorsPage() {
       setNewDesc('');
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Erro ao cadastrar setor.');
+    }
+  };
+
+  const handleScheduleMw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSector) return;
+    setMwError(null);
+    try {
+      await createMwMutation.mutateAsync({
+        sectorId: selectedSector.id,
+        reason: mwReason.trim(),
+        startsAt: new Date(mwStartsAt).toISOString(),
+        endsAt: new Date(mwEndsAt).toISOString(),
+      });
+      setIsScheduleMwOpen(false);
+      setMwReason('');
+      setMwStartsAt('');
+      setMwEndsAt('');
+    } catch (err: unknown) {
+      setMwError(err instanceof Error ? err.message : 'Erro ao agendar manutenção.');
     }
   };
 
@@ -228,6 +265,114 @@ export function SectorsPage() {
                       </span>
                     </li>
                   ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Janelas de Manutenção Programada */}
+            <div className="pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <Wrench aria-hidden className="size-4 text-amber-600" />
+                  Manutenção Programada (Mute de Alarmes)
+                </h3>
+                {canWrite && !isScheduleMwOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleMwOpen(true)}
+                    className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                  >
+                    <Plus className="size-3" />
+                    Agendar
+                  </button>
+                )}
+              </div>
+
+              {isScheduleMwOpen ? (
+                <form onSubmit={(e) => { void handleScheduleMw(e); }} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 space-y-3 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900">Nova Janela de Manutenção</span>
+                    <button type="button" onClick={() => setIsScheduleMwOpen(false)} className="text-slate-400 hover:text-slate-600">
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  {mwError && <p className="text-xs text-red-700">{mwError}</p>}
+                  <TextField
+                    label="Motivo da Intervenção *"
+                    placeholder="Ex: Manutenção preventiva em bombas e registros"
+                    value={mwReason}
+                    onChange={(e) => setMwReason(e.target.value)}
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <TextField
+                      label="Início *"
+                      type="datetime-local"
+                      value={mwStartsAt}
+                      onChange={(e) => setMwStartsAt(e.target.value)}
+                      required
+                    />
+                    <TextField
+                      label="Término *"
+                      type="datetime-local"
+                      value={mwEndsAt}
+                      onChange={(e) => setMwEndsAt(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="secondary" className="text-xs px-2.5 py-1" onClick={() => setIsScheduleMwOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" loading={createMwMutation.isPending} loadingLabel="Salvando…" className="text-xs px-2.5 py-1">
+                      Confirmar Janela
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
+
+              {mwLoading ? (
+                <p className="text-xs text-slate-500 italic">Carregando manutenções programadas…</p>
+              ) : !mwData || mwData.items.length === 0 ? (
+                <p className="text-xs text-slate-500 italic">
+                  Nenhuma janela de manutenção cadastrada para este setor.
+                </p>
+              ) : (
+                <ul className="space-y-2 text-xs">
+                  {mwData.items.map((mw) => {
+                    const isCancelled = Boolean(mw.cancelledAt);
+                    const now = new Date();
+                    const isActive = !isCancelled && now >= new Date(mw.startsAt) && now <= new Date(mw.endsAt);
+                    return (
+                      <li key={mw.id} className="rounded-lg border border-slate-200 p-2.5 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900">{mw.reason}</span>
+                            {isCancelled ? (
+                              <Badge tone="neutral">Cancelada</Badge>
+                            ) : isActive ? (
+                              <Badge tone="warn">Em Andamento</Badge>
+                            ) : (
+                              <Badge tone="info">Agendada</Badge>
+                            )}
+                          </div>
+                          <div className="text-slate-500 text-[11px] mt-0.5">
+                            {new Date(mw.startsAt).toLocaleString('pt-BR')} até {new Date(mw.endsAt).toLocaleString('pt-BR')}
+                          </div>
+                        </div>
+                        {canWrite && !isCancelled && (
+                          <Button
+                            variant="ghost"
+                            className="text-xs text-red-600 hover:text-red-700 px-2 py-1"
+                            onClick={() => cancelMwMutation.mutate(mw.id)}
+                            loading={cancelMwMutation.isPending}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

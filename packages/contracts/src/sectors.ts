@@ -15,6 +15,7 @@ export const sectorSchema = z.object({
   code: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  geometry: z.any().nullable().optional(),
   supplySchedule: z.array(supplyScheduleEntrySchema),
   isFictional: z.boolean(),
   createdAt: dateTimeSchema,

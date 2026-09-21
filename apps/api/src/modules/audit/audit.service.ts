@@ -18,7 +18,13 @@ export type AuditAction =
   | 'simulation.run'
   | 'alert.transitioned'
   | 'work_order.created'
-  | 'work_order.updated';
+  | 'work_order.updated'
+  | 'work_order.attachment_added'
+  | 'device.credential_created'
+  | 'device.credential_revoked'
+  | 'detection_rule.created'
+  | 'maintenance_window.created'
+  | 'maintenance_window.cancelled';
 
 
 

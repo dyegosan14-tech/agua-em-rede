@@ -11,5 +11,5 @@ export * from './telemetry';
 export * from './alerts';
 export * from './work-orders';
 export * from './analytics';
-
-
+export * from './detection-rules';
+export * from './maintenance-windows';

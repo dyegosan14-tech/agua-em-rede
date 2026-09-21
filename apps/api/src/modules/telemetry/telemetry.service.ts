@@ -1,12 +1,14 @@
-import { randomUUID } from 'node:crypto';
-import type { IngestTelemetryRequest, ListMeasurementsQuery, RunSimulationRequest } from '@aer/contracts';
+import { createHash, randomUUID } from 'node:crypto';
+import type { DeviceIngestTelemetryRequest, IngestTelemetryRequest, ListMeasurementsQuery, RunSimulationRequest } from '@aer/contracts';
 import { devices, sectors, type Db } from '@aer/database';
 import type { MeasurementQuality, Metric } from '@aer/domain';
 import { and, eq } from 'drizzle-orm';
+import { Errors } from '../../lib/errors';
 import type { RequestMeta } from '../../lib/request-meta';
 import type { AlertsService } from '../alerts/alerts.service';
 import type { AuditService } from '../audit/audit.service';
 import type { AuthContext } from '../auth/auth.service';
+import * as devicesRepo from '../devices/devices.repository';
 import * as repo from './telemetry.repository';
 
 export interface TelemetryServiceDeps {
@@ -246,4 +248,99 @@ export class TelemetryService {
       generatedAlertId: alert.id,
     };
   }
+
+  async ingestFromDevice(
+    deviceKey: string,
+    input: DeviceIngestTelemetryRequest,
+    _meta: RequestMeta,
+  ): Promise<{ ingestedCount: number }> {
+    const { db, alerts } = this.deps;
+    const secretHash = createHash('sha256').update(deviceKey).digest('hex');
+    const matched = await devicesRepo.findDeviceBySecretHash(db, secretHash);
+    if (!matched) {
+      throw Errors.unauthenticated();
+    }
+    const dev = matched.device;
+    const now = this.deps.clock ? this.deps.clock() : new Date();
+
+    const toInsert = [];
+    const anomalies: { deviceId: string; sectorId: string | null; metric: Metric; value: number; type: string }[] = [];
+
+    for (const item of input.items) {
+      let quality: MeasurementQuality = 'GOOD';
+      const qualityFlags: string[] = [];
+
+      if (item.metric === 'PRESSURE') {
+        if (dev.rangePressureMin !== null && item.value < dev.rangePressureMin) {
+          quality = 'BAD';
+          qualityFlags.push('OUT_OF_RANGE_MIN');
+        } else if (dev.rangePressureMax !== null && item.value > dev.rangePressureMax) {
+          quality = 'BAD';
+          qualityFlags.push('OUT_OF_RANGE_MAX');
+        } else if (item.value < 15) {
+          anomalies.push({ deviceId: dev.id, sectorId: dev.sectorId, metric: 'PRESSURE', value: item.value, type: 'LOW_PRESSURE' });
+        }
+      } else if (item.metric === 'FLOW') {
+        if (dev.rangeFlowMin !== null && item.value < dev.rangeFlowMin) {
+          quality = 'BAD';
+          qualityFlags.push('OUT_OF_RANGE_MIN');
+        } else if (dev.rangeFlowMax !== null && item.value > dev.rangeFlowMax) {
+          quality = 'BAD';
+          qualityFlags.push('OUT_OF_RANGE_MAX');
+        } else if (item.value > 150) {
+          anomalies.push({ deviceId: dev.id, sectorId: dev.sectorId, metric: 'FLOW', value: item.value, type: 'HIGH_FLOW' });
+        }
+      }
+
+      const measuredAt = item.measuredAt ? new Date(item.measuredAt) : now;
+
+      toInsert.push({
+        organizationId: dev.organizationId,
+        deviceId: dev.id,
+        sectorId: dev.sectorId,
+        externalEventId: item.externalEventId ?? randomUUID(),
+        metric: item.metric,
+        value: item.value,
+        unit: item.unit ?? (item.metric === 'PRESSURE' ? 'mca' : 'm3/h'),
+        quality,
+        qualityFlags,
+        measuredAt,
+        origin: dev.isFictional ? ('SIMULATED' as const) : ('REAL' as const),
+        simulationRunId: null,
+      });
+
+      await db
+        .update(devices)
+        .set({ lastMeasurementAt: measuredAt, lastReceivedAt: now })
+        .where(eq(devices.id, dev.id));
+    }
+
+    const inserted = await repo.insertMeasurements(db, toInsert);
+
+    for (const anom of anomalies) {
+      const isPressure = anom.type === 'LOW_PRESSURE';
+      await alerts.createOrDeduplicate(dev.organizationId, {
+        ruleKind: isPressure ? 'LOW_PRESSURE' : 'HIGH_FLOW',
+        sectorId: anom.sectorId,
+        deviceId: anom.deviceId,
+        dedupKey: `${dev.organizationId}:device:${anom.deviceId}:${anom.type}`,
+        severity: isPressure ? 'HIGH' : 'MEDIUM',
+        title: isPressure
+          ? `Pressão Baixa Detectada no Sensor ${dev.code}`
+          : `Vazão Excessiva no Medidor ${dev.code}`,
+        priorityScore: isPressure ? 75 : 60,
+        evidence: {
+          metric: anom.metric,
+          value: anom.value,
+          unit: anom.metric === 'PRESSURE' ? 'mca' : 'm3/h',
+          note: `Anomalia de ${anom.type} detectada via telemetria IoT do sensor ${dev.code}`,
+          threshold: isPressure ? '< 15 mca' : '> 150 m3/h',
+        },
+        origin: dev.isFictional ? 'SIMULATED' : 'REAL',
+      });
+    }
+
+    return { ingestedCount: inserted.length };
+  }
 }
+
