@@ -17,6 +17,16 @@ interface NetworkMapProps {
 const DEFAULT_CENTER: [number, number] = [-8.0476, -34.887]; // Recife, PE
 const SECTOR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>'"]/g, (tag) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;',
+  }[tag] ?? tag));
+}
+
 export function NetworkMap({
   sectors = [],
   devices = [],
@@ -145,12 +155,12 @@ export function NetworkMap({
       const popupContent = `
         <div class="p-1 font-sans text-xs space-y-1.5 min-w-[160px]">
           <div class="flex items-center justify-between border-b border-slate-100 pb-1">
-            <span class="font-mono font-bold text-slate-900">${dev.code}</span>
+            <span class="font-mono font-bold text-slate-900">${escapeHtml(dev.code)}</span>
             <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">
               ${isActive ? 'ATIVO' : 'INATIVO'}
             </span>
           </div>
-          <div class="font-medium text-slate-800">${dev.name}</div>
+          <div class="font-medium text-slate-800">${escapeHtml(dev.name)}</div>
           <div class="text-slate-500">
             ${isPressure ? 'Pressão: ' + (dev.rangePressureMin ?? 0) + ' a ' + (dev.rangePressureMax ?? 0) + ' mca' : 'Vazão: ' + (dev.rangeFlowMin ?? 0) + ' a ' + (dev.rangeFlowMax ?? 0) + ' m³/h'}
           </div>
