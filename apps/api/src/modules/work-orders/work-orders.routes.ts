@@ -114,6 +114,7 @@ export async function workOrdersRoutes(app: FastifyInstance, deps: { workOrdersS
   r.post(
     '/:id/attachments',
     {
+      bodyLimit: 15 * 1024 * 1024,
       preValidation: [app.authenticate, app.authorize('work-orders:execute')],
       schema: {
         tags: ['Ordens de Serviço'],
