@@ -14,6 +14,7 @@ export const deviceSchema = z.object({
   name: z.string(),
   kind: deviceKindSchema,
   metrics: z.array(metricSchema),
+  location: z.any().nullable().optional(),
   rangePressureMin: z.number().nullable(),
   rangePressureMax: z.number().nullable(),
   rangeFlowMin: z.number().nullable(),
@@ -27,6 +28,26 @@ export const deviceSchema = z.object({
   updatedAt: dateTimeSchema,
 });
 export type DeviceDto = z.infer<typeof deviceSchema>;
+
+export const deviceCredentialSchema = z.object({
+  id: uuidSchema,
+  deviceId: uuidSchema,
+  label: z.string().nullable(),
+  createdAt: dateTimeSchema,
+  expiresAt: dateTimeSchema.nullable(),
+  revokedAt: dateTimeSchema.nullable(),
+  lastUsedAt: dateTimeSchema.nullable(),
+});
+export type DeviceCredentialDto = z.infer<typeof deviceCredentialSchema>;
+
+export const createDeviceCredentialResponseSchema = z.object({
+  id: uuidSchema,
+  deviceId: uuidSchema,
+  secret: z.string(),
+  label: z.string().nullable(),
+  createdAt: dateTimeSchema,
+});
+export type CreateDeviceCredentialResponse = z.infer<typeof createDeviceCredentialResponseSchema>;
 
 export const listDevicesQuerySchema = paginationQuerySchema.extend({
   sectorId: uuidSchema.optional(),

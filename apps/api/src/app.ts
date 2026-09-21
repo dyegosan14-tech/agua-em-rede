@@ -15,9 +15,13 @@ import { AuditService } from './modules/audit/audit.service';
 import { authRoutes } from './modules/auth/auth.routes';
 import { AuthService } from './modules/auth/auth.service';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
+import { detectionRulesRoutes } from './modules/detection-rules/detection-rules.routes';
+import { DetectionRulesService } from './modules/detection-rules/detection-rules.service';
 import { devicesRoutes } from './modules/devices/devices.routes';
 import { DevicesService } from './modules/devices/devices.service';
 import { healthRoutes } from './modules/health/health.routes';
+import { maintenanceWindowsRoutes } from './modules/maintenance-windows/maintenance-windows.routes';
+import { MaintenanceWindowsService } from './modules/maintenance-windows/maintenance-windows.service';
 import { organizationsRoutes } from './modules/organizations/organizations.routes';
 import { sectorsRoutes } from './modules/sectors/sectors.routes';
 import { SectorsService } from './modules/sectors/sectors.service';
@@ -97,6 +101,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const alertsService = new AlertsService({ db, audit, clock });
   const workOrdersService = new WorkOrdersService({ db, audit, clock });
   const telemetryService = new TelemetryService({ db, alerts: alertsService, audit, clock });
+  const detectionRulesService = new DetectionRulesService({ db, audit });
+  const maintenanceWindowsService = new MaintenanceWindowsService({ db, audit });
 
   await app.register((scope) => healthRoutes(scope, { pool: deps.pool, redis: deps.redis }), { prefix: '/health' });
   await app.register(
@@ -118,6 +124,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register((scope) => telemetryRoutes(scope, { telemetryService }), { prefix: '/api/telemetry' });
   await app.register((scope) => alertsRoutes(scope, { alertsService }), { prefix: '/api/alerts' });
   await app.register((scope) => workOrdersRoutes(scope, { workOrdersService }), { prefix: '/api/work-orders' });
+  await app.register((scope) => detectionRulesRoutes(scope, { detectionRulesService }), { prefix: '/api/detection-rules' });
+  await app.register((scope) => maintenanceWindowsRoutes(scope, { maintenanceWindowsService }), { prefix: '/api/maintenance-windows' });
   await app.register((scope) => analyticsRoutes(scope, { db }), { prefix: '/api/analytics' });
   await app.register((scope) => dashboardRoutes(scope, { db }), { prefix: '/api/dashboard' });
   await app.register((scope) => auditRoutes(scope, { db }), { prefix: '/api/audit-logs' });

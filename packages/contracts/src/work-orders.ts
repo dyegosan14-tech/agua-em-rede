@@ -38,6 +38,25 @@ export const workOrderDtoSchema = z.object({
 });
 export type WorkOrderDto = z.infer<typeof workOrderDtoSchema>;
 
+export const workOrderAttachmentSchema = z.object({
+  id: uuidSchema,
+  workOrderId: uuidSchema,
+  originalFilename: z.string().nullable(),
+  contentType: z.string(),
+  sizeBytes: z.number().int(),
+  storageKey: z.string(),
+  dataBase64: z.string().optional(),
+  createdAt: dateTimeSchema,
+});
+export type WorkOrderAttachmentDto = z.infer<typeof workOrderAttachmentSchema>;
+
+export const uploadAttachmentRequestSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  dataBase64: z.string().min(10, 'Arquivo inválido.'),
+});
+export type UploadAttachmentRequest = z.infer<typeof uploadAttachmentRequestSchema>;
+
 export const listWorkOrdersQuerySchema = paginationQuerySchema.extend({
   status: workOrderStatusSchema.optional(),
   priority: workOrderPrioritySchema.optional(),

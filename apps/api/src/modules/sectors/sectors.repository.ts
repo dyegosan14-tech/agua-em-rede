@@ -12,6 +12,7 @@ export function toSectorDto(row: SectorRow): SectorDto {
     code: row.code,
     name: row.name,
     description: row.description,
+    geometry: row.geometry,
     supplySchedule: row.supplySchedule ?? [],
     isFictional: row.isFictional,
     createdAt: row.createdAt.toISOString(),

@@ -1,8 +1,9 @@
 import {
   type IngestTelemetryRequest,
+  type ListMeasurementsResponse,
   type RunSimulationRequest,
 } from '@aer/contracts';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { api } from '../../lib/api';
 
@@ -59,3 +60,18 @@ export function useIngestTelemetry() {
     },
   });
 }
+
+export function useTelemetryMeasurements(query: { deviceId?: string; sectorId?: string; metric?: string; limit?: number }) {
+  const params = new URLSearchParams();
+  if (query.deviceId) params.set('deviceId', query.deviceId);
+  if (query.sectorId) params.set('sectorId', query.sectorId);
+  if (query.metric) params.set('metric', query.metric);
+  params.set('limit', String(query.limit ?? 100));
+
+  return useQuery({
+    queryKey: ['telemetry-readings', query],
+    queryFn: () => api<ListMeasurementsResponse>(`/telemetry?${params.toString()}`),
+    enabled: Boolean(query.deviceId || query.sectorId),
+  });
+}
+

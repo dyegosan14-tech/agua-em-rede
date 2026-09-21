@@ -1,4 +1,5 @@
 import {
+  deviceIngestTelemetryRequestSchema,
   errorResponseSchema,
   ingestTelemetryRequestSchema,
   listMeasurementsQuerySchema,
@@ -69,4 +70,24 @@ export async function telemetryRoutes(app: FastifyInstance, deps: { telemetrySer
     },
     async (request) => telemetryService.runSimulation(requireAuth(request), request.body, requestMeta(request)),
   );
+
+  r.post(
+    '/device-ingest',
+    {
+      schema: {
+        tags: ['Telemetria'],
+        summary: 'Ingestão direta de telemetria para sensores e gateways IoT via chave de dispositivo',
+        headers: z.object({
+          'x-device-key': z.string().min(10, 'Informe o cabeçalho X-Device-Key com a chave do sensor.'),
+        }),
+        body: deviceIngestTelemetryRequestSchema,
+        response: { 200: ingestResponseSchema, 400: errorResponseSchema, 401: errorResponseSchema },
+      },
+    },
+    async (request) => {
+      const deviceKey = request.headers['x-device-key'];
+      return telemetryService.ingestFromDevice(deviceKey, request.body, requestMeta(request));
+    },
+  );
 }
+

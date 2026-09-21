@@ -1,0 +1,17 @@
+{
+  "name": "Água em Rede",
+  "short_name": "Água em Rede",
+  "description": "Monitoramento inteligente de pressão e vazão e combate a perdas na distribuição de água.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1b3e",
+  "theme_color": "#1a48ad",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

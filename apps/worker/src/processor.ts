@@ -1,4 +1,5 @@
 import { UnrecoverableError } from 'bullmq';
+import { CHECK_NO_COMMUNICATION_JOB, checkNoCommunicationJob } from './jobs/check-no-communication';
 import { PURGE_SESSIONS_JOB, purgeSessionsJob, type JobDeps } from './jobs/purge-sessions';
 
 export interface ProcessableJob {
@@ -15,6 +16,8 @@ export function createProcessor(deps: JobDeps): (job: ProcessableJob) => Promise
     switch (job.name) {
       case PURGE_SESSIONS_JOB:
         return purgeSessionsJob(deps, job.data);
+      case CHECK_NO_COMMUNICATION_JOB:
+        return checkNoCommunicationJob(deps, job.data);
       default:
         throw new UnrecoverableError(`Job desconhecido: ${job.name}`);
     }

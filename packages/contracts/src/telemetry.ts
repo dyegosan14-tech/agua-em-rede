@@ -24,6 +24,19 @@ export const ingestTelemetryRequestSchema = z.object({
 });
 export type IngestTelemetryRequest = z.infer<typeof ingestTelemetryRequestSchema>;
 
+export const deviceTelemetryItemSchema = z.object({
+  metric: metricSchema,
+  value: z.number(),
+  unit: z.string().trim().min(1).max(20).optional(),
+  measuredAt: dateTimeSchema.optional(),
+  externalEventId: z.string().trim().max(100).optional(),
+});
+
+export const deviceIngestTelemetryRequestSchema = z.object({
+  items: z.array(deviceTelemetryItemSchema).min(1, 'Envie ao menos uma leitura.').max(100),
+});
+export type DeviceIngestTelemetryRequest = z.infer<typeof deviceIngestTelemetryRequestSchema>;
+
 export const measurementDtoSchema = z.object({
   id: uuidSchema,
   deviceId: uuidSchema,

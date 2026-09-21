@@ -15,6 +15,8 @@
     "@aer/domain": "*",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.103.1",
+    "@types/leaflet": "^1.9.22",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

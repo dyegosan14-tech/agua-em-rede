@@ -1,7 +1,7 @@
-import type { DeviceDto, ListDevicesQuery } from '@aer/contracts';
-import { devices, type Executor } from '@aer/database';
+import type { DeviceCredentialDto, DeviceDto, ListDevicesQuery } from '@aer/contracts';
+import { deviceCredentials, devices, type Executor } from '@aer/database';
 import type { ActiveStatus, DeviceKind, Metric } from '@aer/domain';
-import { and, asc, count, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 
 export type DeviceRow = typeof devices.$inferSelect;
@@ -17,6 +17,7 @@ export function toDeviceDto(row: DeviceRow): DeviceDto {
     name: row.name,
     kind: row.kind,
     metrics: row.metrics,
+    location: row.location,
     rangePressureMin: row.rangePressureMin,
     rangePressureMax: row.rangePressureMax,
     rangeFlowMin: row.rangeFlowMin,
@@ -111,4 +112,96 @@ export async function updateDevice(
     .where(and(eq(devices.id, deviceId), eq(devices.organizationId, organizationId), isNull(devices.archivedAt)))
     .returning();
   return row ?? null;
+}
+
+export async function insertDeviceCredential(
+  db: Executor,
+  values: {
+    organizationId: string;
+    deviceId: string;
+    secretHash: string;
+    label?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<DeviceCredentialDto> {
+  const [row] = await db.insert(deviceCredentials).values(values).returning();
+  if (!row) throw new Error('Falha ao registrar credencial do dispositivo');
+  return {
+    id: row.id,
+    deviceId: row.deviceId,
+    label: row.label,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    revokedAt: row.revokedAt?.toISOString() ?? null,
+    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+  };
+}
+
+export async function listDeviceCredentials(
+  db: Executor,
+  organizationId: string,
+  deviceId: string,
+): Promise<DeviceCredentialDto[]> {
+  const rows = await db
+    .select()
+    .from(deviceCredentials)
+    .where(and(eq(deviceCredentials.organizationId, organizationId), eq(deviceCredentials.deviceId, deviceId)))
+    .orderBy(desc(deviceCredentials.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    deviceId: r.deviceId,
+    label: r.label,
+    createdAt: r.createdAt.toISOString(),
+    expiresAt: r.expiresAt?.toISOString() ?? null,
+    revokedAt: r.revokedAt?.toISOString() ?? null,
+    lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
+  }));
+}
+
+export async function revokeDeviceCredential(
+  db: Executor,
+  organizationId: string,
+  deviceId: string,
+  credentialId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .update(deviceCredentials)
+    .set({ revokedAt: sql`now()` })
+    .where(
+      and(
+        eq(deviceCredentials.id, credentialId),
+        eq(deviceCredentials.deviceId, deviceId),
+        eq(deviceCredentials.organizationId, organizationId),
+        isNull(deviceCredentials.revokedAt),
+      ),
+    )
+    .returning();
+  return Boolean(row);
+}
+
+export async function findDeviceBySecretHash(
+  db: Executor,
+  secretHash: string,
+): Promise<{ device: DeviceRow; credentialId: string } | null> {
+  const [cred] = await db
+    .select()
+    .from(deviceCredentials)
+    .where(and(eq(deviceCredentials.secretHash, secretHash), isNull(deviceCredentials.revokedAt)))
+    .limit(1);
+
+  if (!cred) return null;
+
+  // Atualiza lastUsedAt da credencial
+  await db.update(deviceCredentials).set({ lastUsedAt: sql`now()` }).where(eq(deviceCredentials.id, cred.id));
+
+  const [dev] = await db
+    .select()
+    .from(devices)
+    .where(and(eq(devices.id, cred.deviceId), isNull(devices.archivedAt)))
+    .limit(1);
+
+  if (!dev || dev.status !== 'ACTIVE') return null;
+
+  return { device: dev, credentialId: cred.id };
 }

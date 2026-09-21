@@ -1,6 +1,6 @@
-import type { ListWorkOrdersQuery, WorkOrderDto } from '@aer/contracts';
-import { workOrderEvents, workOrders, type Executor } from '@aer/database';
-import type { DataOrigin, WorkOrderEventType, WorkOrderPriority, WorkOrderStatus } from '@aer/domain';
+import type { ListWorkOrdersQuery, WorkOrderAttachmentDto, WorkOrderDto } from '@aer/contracts';
+import { attachments, workOrderEvents, workOrders, type Executor } from '@aer/database';
+import type { AttachmentContentType, DataOrigin, WorkOrderEventType, WorkOrderPriority, WorkOrderStatus } from '@aer/domain';
 import { and, count, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 export type WorkOrderRow = typeof workOrders.$inferSelect;
@@ -131,3 +131,52 @@ export async function insertWorkOrderEvent(
 ): Promise<void> {
   await db.insert(workOrderEvents).values(values);
 }
+
+export async function insertAttachment(
+  db: Executor,
+  values: {
+    organizationId: string;
+    workOrderId: string;
+    uploadedBy: string;
+    storageKey: string;
+    originalFilename?: string | null;
+    contentType: AttachmentContentType;
+    sizeBytes: number;
+    sha256: string;
+  },
+): Promise<WorkOrderAttachmentDto> {
+  const [row] = await db.insert(attachments).values(values).returning();
+  if (!row) throw new Error('Falha ao registrar anexo da ordem');
+  return {
+    id: row.id,
+    workOrderId: row.workOrderId,
+    originalFilename: row.originalFilename,
+    contentType: row.contentType,
+    sizeBytes: row.sizeBytes,
+    storageKey: row.storageKey,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export async function listAttachments(
+  db: Executor,
+  organizationId: string,
+  workOrderId: string,
+): Promise<WorkOrderAttachmentDto[]> {
+  const rows = await db
+    .select()
+    .from(attachments)
+    .where(and(eq(attachments.organizationId, organizationId), eq(attachments.workOrderId, workOrderId), isNull(attachments.archivedAt)))
+    .orderBy(desc(attachments.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    workOrderId: r.workOrderId,
+    originalFilename: r.originalFilename,
+    contentType: r.contentType,
+    sizeBytes: r.sizeBytes,
+    storageKey: r.storageKey,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
