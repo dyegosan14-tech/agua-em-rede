@@ -23,18 +23,47 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições de API para que usem a rede sempre
-  if (event.request.url.includes('/api/')) {
+  // Apenas trata requisições GET e ignora requisições de API (que devem ir à rede ou fila local)
+  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
-      });
-    })
+      if (cached) {
+        return cached;
+      }
+
+      return fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          // Cache dinâmico de scripts, estilos e fontes para resiliência offline em campo
+          const isStaticAsset =
+            event.request.url.includes('/assets/') ||
+            event.request.url.endsWith('.js') ||
+            event.request.url.endsWith('.css') ||
+            event.request.url.endsWith('.svg') ||
+            event.request.url.endsWith('.woff2') ||
+            event.request.url.endsWith('.png');
+
+          if (isStaticAsset) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+
+          return response;
+        })
+        .catch(() => {
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
+        });
+    }),
   );
 });
+

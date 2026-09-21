@@ -1,5 +1,5 @@
-import { alertEvents, alerts, detectionRules, devices } from '@aer/database';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { alertEvents, alerts, detectionRules, devices, maintenanceWindows } from '@aer/database';
+import { and, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import type { JobDeps } from './purge-sessions';
 
 export const CHECK_NO_COMMUNICATION_JOB = 'check-no-communication';
@@ -16,6 +16,30 @@ export async function checkNoCommunicationJob(
     .from(devices)
     .where(and(eq(devices.status, 'ACTIVE'), isNull(devices.archivedAt)));
 
+  // Janelas de manutenção ativas neste instante para supressão de falsos positivos
+  const activeMaintenance = await db
+    .select({
+      organizationId: maintenanceWindows.organizationId,
+      sectorId: maintenanceWindows.sectorId,
+      deviceId: maintenanceWindows.deviceId,
+    })
+    .from(maintenanceWindows)
+    .where(
+      and(
+        lte(maintenanceWindows.startsAt, now),
+        gte(maintenanceWindows.endsAt, now),
+        isNull(maintenanceWindows.cancelledAt),
+        isNull(maintenanceWindows.archivedAt),
+      ),
+    );
+
+  const isInMaintenance = (dev: (typeof activeDevices)[number]) =>
+    activeMaintenance.some(
+      (mw) =>
+        mw.organizationId === dev.organizationId &&
+        (mw.deviceId === dev.id || (mw.sectorId !== null && mw.sectorId === dev.sectorId)),
+    );
+
   let alertsCreated = 0;
 
   for (const dev of activeDevices) {
@@ -25,6 +49,15 @@ export async function checkNoCommunicationJob(
     const isOffline = dev.lastReceivedAt ? dev.lastReceivedAt < thresholdDate : dev.createdAt < thresholdDate;
 
     if (!isOffline) continue;
+
+    // Se o dispositivo ou seu setor estiver em janela de manutenção programada, não gera falso alarme
+    if (isInMaintenance(dev)) {
+      logger.debug(
+        { deviceId: dev.id, deviceCode: dev.code },
+        'alerta suprimido: dispositivo em janela de manutenção ativa',
+      );
+      continue;
+    }
 
     const dedupKey = `${dev.organizationId}:NO_COMMUNICATION:${dev.id}`;
 
