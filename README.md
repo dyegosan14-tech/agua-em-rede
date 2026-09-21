@@ -15,7 +15,7 @@ Plataforma para monitoramento de pressão e vazão e gestão da redução de per
 | 3 | Ingestão de telemetria, credenciais IoT e gráficos | **Implementada** |
 | 4 | Regras de detecção, janelas de manutenção e alertas | **Implementada** |
 | 5 | Ordens de serviço, evidências fotográficas e PWA | **Implementada** |
-| 6 | Indicadores, E2E e documentação final | Próxima etapa |
+| 6 | Indicadores, E2E, CI/CD e documentação final | **Implementada** |
 
 ### O que está implementado
 
@@ -28,6 +28,10 @@ Plataforma para monitoramento de pressão e vazão e gestão da redução de per
 - **Detecção de Falha de Comunicação**: Job de background no BullMQ (`check-no-communication`) que avalia sensores inativos a cada 5 minutos e abre alertas `NO_COMMUNICATION` automaticamente.
 - **Regras e Janelas de Manutenção**: Módulos completos para cadastro de regras (`/api/detection-rules`) e agendamento de janelas de manutenção preventiva (`/api/maintenance-windows`) para silenciar alarmes durante intervenções na rede.
 - **Ordens de Serviço & PWA de Campo**: Gestão de reparos e contenção de vazamentos com estimativa de volume salvo (m³), captura e upload de fotos/evidências de campo com hash SHA-256, Web App Manifest e Service Worker para suporte offline em smartphones e tablets.
+- **Testes E2E de Ciclo Completo**: Teste automatizado de ponta a ponta (`apps/api/test/e2e-lifecycle.int.test.ts`) cobrindo desde a transmissão anômala do sensor IoT até a resolução da ordem em campo com fotos e consolidação no painel da Meta de 30%.
+- **Containerização & Deploy (Docker)**: `Dockerfile` multi-stage para API, Worker e Web (Nginx), orquestrados via `docker-compose.prod.yml` para execução imediata em qualquer ambiente.
+- **Automação de CI/CD**: Pipeline do GitHub Actions (`.github/workflows/ci.yml`) que valida linter, tipos estáticos, suíte de 148 testes e compilação de produção.
+- **Roteiro de Demonstração & Pitch**: Documentação em `docs/pitch_e_demo.md` detalhando a proposta de valor, decisões de engenharia e roteiro para apresentação ao vivo.
 
 ## Requisitos
 
