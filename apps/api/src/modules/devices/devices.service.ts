@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from 'node:crypto';
 import type { CreateDeviceRequest, DeviceDto, ListDevicesQuery, UpdateDeviceRequest } from '@aer/contracts';
 import type { Db } from '@aer/database';
 import { Errors } from '../../lib/errors';
@@ -142,4 +143,86 @@ export class DevicesService {
       return repo.toDeviceDto(updated);
     });
   }
+
+  async createCredential(
+    auth: AuthContext,
+    deviceId: string,
+    meta: RequestMeta,
+    label?: string | null,
+  ): Promise<{ id: string; deviceId: string; secret: string; label: string | null; createdAt: string }> {
+    const { db, audit } = this.deps;
+    const device = await repo.findDevice(db, auth.organizationId, deviceId);
+    if (!device) throw Errors.notFound('Dispositivo');
+
+    // Gera segredo aleatório de 256 bits (64 hex characters)
+    const secret = randomBytes(32).toString('hex');
+    const secretHash = createHash('sha256').update(secret).digest('hex');
+
+    const cred = await db.transaction(async (tx) => {
+      const created = await repo.insertDeviceCredential(tx, {
+        organizationId: auth.organizationId,
+        deviceId,
+        secretHash,
+        label: label ?? `Chave IoT criada em ${new Date().toLocaleDateString('pt-BR')}`,
+        createdBy: auth.userId,
+      });
+
+      await audit.record(
+        {
+          organizationId: auth.organizationId,
+          actorUserId: auth.userId,
+          action: 'device.credential_created',
+          entityType: 'device_credential',
+          entityId: created.id,
+          meta,
+          metadata: { deviceId, credentialId: created.id },
+        },
+        tx,
+      );
+
+      return created;
+    });
+
+    return {
+      id: cred.id,
+      deviceId: cred.deviceId,
+      secret, // Retornado uma única vez
+      label: cred.label,
+      createdAt: cred.createdAt,
+    };
+  }
+
+  async listCredentials(auth: AuthContext, deviceId: string) {
+    const device = await repo.findDevice(this.deps.db, auth.organizationId, deviceId);
+    if (!device) throw Errors.notFound('Dispositivo');
+    return repo.listDeviceCredentials(this.deps.db, auth.organizationId, deviceId);
+  }
+
+  async revokeCredential(auth: AuthContext, deviceId: string, credentialId: string, meta: RequestMeta) {
+    const { db, audit } = this.deps;
+    const device = await repo.findDevice(db, auth.organizationId, deviceId);
+    if (!device) throw Errors.notFound('Dispositivo');
+
+    const revoked = await db.transaction(async (tx) => {
+      const ok = await repo.revokeDeviceCredential(tx, auth.organizationId, deviceId, credentialId);
+      if (!ok) throw Errors.notFound('Credencial');
+
+      await audit.record(
+        {
+          organizationId: auth.organizationId,
+          actorUserId: auth.userId,
+          action: 'device.credential_revoked',
+          entityType: 'device_credential',
+          entityId: credentialId,
+          meta,
+          metadata: { deviceId, credentialId },
+        },
+        tx,
+      );
+      return true;
+    });
+
+    return { success: revoked };
+  }
 }
+

@@ -5,6 +5,7 @@ import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 import { RequireAuth, RequirePermission } from './features/auth/guards';
 import { LoginPage } from './features/auth/LoginPage';
 import { DevicesPage } from './features/devices/DevicesPage';
+import { MapPage } from './features/map/MapPage';
 import { SectorsPage } from './features/sectors/SectorsPage';
 import { UsersPage } from './features/users/UsersPage';
 import { WorkOrdersPage } from './features/work-orders/WorkOrdersPage';
@@ -20,6 +21,9 @@ export function App() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="conta" element={<AccountPage />} />
+          <Route element={<RequirePermission permission="sectors:read" />}>
+            <Route path="mapa" element={<MapPage />} />
+          </Route>
           <Route element={<RequirePermission permission="analytics:read" />}>
             <Route path="indicadores" element={<AnalyticsPage />} />
           </Route>

@@ -4,7 +4,9 @@ import {
   listWorkOrdersQuerySchema,
   listWorkOrdersResponseSchema,
   updateWorkOrderRequestSchema,
+  uploadAttachmentRequestSchema,
   uuidSchema,
+  workOrderAttachmentSchema,
   workOrderDtoSchema,
 } from '@aer/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -93,4 +95,44 @@ export async function workOrdersRoutes(app: FastifyInstance, deps: { workOrdersS
     },
     async (request) => workOrdersService.update(requireAuth(request), request.params.id, request.body, requestMeta(request)),
   );
+
+  r.get(
+    '/:id/attachments',
+    {
+      preValidation: [app.authenticate],
+      schema: {
+        tags: ['Ordens de Serviço'],
+        summary: 'Lista fotos e evidências anexadas à ordem de serviço',
+        security: [{ cookieAuth: [] }],
+        params: idParams,
+        response: { 200: z.array(workOrderAttachmentSchema), ...readErrors },
+      },
+    },
+    async (request) => workOrdersService.listAttachments(requireAuth(request), request.params.id),
+  );
+
+  r.post(
+    '/:id/attachments',
+    {
+      preValidation: [app.authenticate, app.authorize('work-orders:execute')],
+      schema: {
+        tags: ['Ordens de Serviço'],
+        summary: 'Anexa uma foto ou evidência de campo à ordem de serviço',
+        security: [{ cookieAuth: [], csrfToken: [] }],
+        params: idParams,
+        body: uploadAttachmentRequestSchema,
+        response: { 201: workOrderAttachmentSchema, ...writeErrors },
+      },
+    },
+    async (request, reply) => {
+      const created = await workOrdersService.addAttachment(
+        requireAuth(request),
+        request.params.id,
+        request.body,
+        requestMeta(request),
+      );
+      return reply.code(201).send(created);
+    },
+  );
 }
+

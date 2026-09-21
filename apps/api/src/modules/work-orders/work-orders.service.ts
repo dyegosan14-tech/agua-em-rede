@@ -1,4 +1,5 @@
-import type { CreateWorkOrderRequest, ListWorkOrdersQuery, UpdateWorkOrderRequest, WorkOrderDto } from '@aer/contracts';
+import { createHash } from 'node:crypto';
+import type { CreateWorkOrderRequest, ListWorkOrdersQuery, UpdateWorkOrderRequest, UploadAttachmentRequest, WorkOrderAttachmentDto, WorkOrderDto } from '@aer/contracts';
 import type { Db } from '@aer/database';
 import { Errors } from '../../lib/errors';
 import type { RequestMeta } from '../../lib/request-meta';
@@ -194,4 +195,65 @@ export class WorkOrdersService {
       return repo.toWorkOrderDto(updated);
     });
   }
+
+  async addAttachment(
+    auth: AuthContext,
+    workOrderId: string,
+    input: UploadAttachmentRequest,
+    meta: RequestMeta,
+  ): Promise<WorkOrderAttachmentDto> {
+    const { db, audit } = this.deps;
+    const order = await repo.findWorkOrder(db, auth.organizationId, workOrderId);
+    if (!order) throw Errors.notFound('Ordem de serviço');
+
+    const buffer = Buffer.from(input.dataBase64, 'base64');
+    const sha256 = createHash('sha256').update(buffer).digest('hex');
+    const storageKey = `work-orders/${workOrderId}/${Date.now()}-${input.filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    return db.transaction(async (tx) => {
+      const created = await repo.insertAttachment(tx, {
+        organizationId: auth.organizationId,
+        workOrderId,
+        uploadedBy: auth.userId,
+        storageKey,
+        originalFilename: input.filename,
+        contentType: input.contentType,
+        sizeBytes: buffer.length,
+        sha256,
+      });
+
+      await repo.insertWorkOrderEvent(tx, {
+        organizationId: auth.organizationId,
+        workOrderId,
+        eventType: 'ATTACHMENT_ADDED',
+        actorUserId: auth.userId,
+        data: { attachmentId: created.id, filename: input.filename, contentType: input.contentType },
+      });
+
+      await audit.record(
+        {
+          organizationId: auth.organizationId,
+          actorUserId: auth.userId,
+          action: 'work_order.attachment_added',
+          entityType: 'attachment',
+          entityId: created.id,
+          meta,
+          metadata: { workOrderId, filename: input.filename },
+        },
+        tx,
+      );
+
+      return {
+        ...created,
+        dataBase64: input.dataBase64,
+      };
+    });
+  }
+
+  async listAttachments(auth: AuthContext, workOrderId: string): Promise<WorkOrderAttachmentDto[]> {
+    const order = await repo.findWorkOrder(this.deps.db, auth.organizationId, workOrderId);
+    if (!order) throw Errors.notFound('Ordem de serviço');
+    return repo.listAttachments(this.deps.db, auth.organizationId, workOrderId);
+  }
 }
+

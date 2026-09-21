@@ -1,8 +1,12 @@
 import {
+  listMaintenanceWindowsResponseSchema,
   listSectorsResponseSchema,
+  maintenanceWindowSchema,
   sectorSchema,
+  type CreateMaintenanceWindowRequest,
   type CreateSectorRequest,
   type ListSectorsQuery,
+  type MaintenanceWindowDto,
   type UpdateSectorRequest,
 } from '@aer/contracts';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -53,3 +57,49 @@ export const useCreateSector = () =>
 
 export const useUpdateSector = (id: string) =>
   useInvalidatingMutation((input: UpdateSectorRequest) => api(`/sectors/${id}`, { method: 'PATCH', body: input, schema: sectorSchema }));
+
+export function useMaintenanceWindows(sectorId?: string | null) {
+  return useQuery({
+    queryKey: ['maintenance-windows', sectorId],
+    queryFn: () => {
+      const query = sectorId ? `?sectorId=${encodeURIComponent(sectorId)}` : '';
+      return api(`/maintenance-windows${query}`, { schema: listMaintenanceWindowsResponseSchema });
+    },
+    enabled: sectorId !== undefined,
+  });
+}
+
+export function useCreateMaintenanceWindow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateMaintenanceWindowRequest) =>
+      api<MaintenanceWindowDto>('/maintenance-windows', {
+        method: 'POST',
+        body: input,
+        schema: maintenanceWindowSchema,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['maintenance-windows'] }),
+        queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+        queryClient.invalidateQueries({ queryKey: ['sectors'] }),
+      ]);
+    },
+  });
+}
+
+export function useCancelMaintenanceWindow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<void>(`/maintenance-windows/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['maintenance-windows'] }),
+        queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+      ]);
+    },
+  });
+}

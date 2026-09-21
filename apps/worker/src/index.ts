@@ -3,6 +3,7 @@ import { createDb, createPool } from '@aer/database';
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { pino, stdSerializers, stdTimeFunctions } from 'pino';
+import { CHECK_NO_COMMUNICATION_JOB } from './jobs/check-no-communication';
 import { PURGE_SESSIONS_JOB } from './jobs/purge-sessions';
 import { createProcessor } from './processor';
 import { DEFAULT_JOB_OPTIONS, MAINTENANCE_QUEUE } from './queues';
@@ -44,6 +45,13 @@ async function main(): Promise<void> {
     PURGE_SESSIONS_JOB,
     { every: 60 * 60 * 1000 },
     { name: PURGE_SESSIONS_JOB, data: { retentionDays: 30 } },
+  );
+
+  // Vigilância periódica de perda de sinal de sensores a cada 5 minutos
+  await queue.upsertJobScheduler(
+    CHECK_NO_COMMUNICATION_JOB,
+    { every: 5 * 60 * 1000 },
+    { name: CHECK_NO_COMMUNICATION_JOB, data: {} },
   );
 
   const processor = createProcessor({ db, logger, clock: () => new Date() });

@@ -86,4 +86,87 @@ export async function devicesRoutes(app: FastifyInstance, deps: { devicesService
     },
     async (request) => devicesService.update(requireAuth(request), request.params.id, request.body, requestMeta(request)),
   );
+
+  r.post(
+    '/:id/credentials',
+    {
+      preValidation: [app.authenticate, app.authorize('devices:credentials')],
+      schema: {
+        tags: ['Dispositivos'],
+        summary: 'Gera uma nova chave de acesso IoT para o dispositivo (exibida uma única vez)',
+        security,
+        params: idParams,
+        body: z.object({ label: z.string().trim().max(100).optional() }),
+        response: {
+          201: z.object({
+            id: uuidSchema,
+            deviceId: uuidSchema,
+            secret: z.string(),
+            label: z.string().nullable(),
+            createdAt: z.string(),
+          }),
+          ...writeErrors,
+        },
+      },
+    },
+    async (request, reply) => {
+      const created = await devicesService.createCredential(
+        requireAuth(request),
+        request.params.id,
+        requestMeta(request),
+        request.body.label,
+      );
+      return reply.code(201).send(created);
+    },
+  );
+
+  r.get(
+    '/:id/credentials',
+    {
+      preValidation: [app.authenticate, app.authorize('devices:read')],
+      schema: {
+        tags: ['Dispositivos'],
+        summary: 'Lista credenciais ativas e revogadas do dispositivo',
+        security: [{ cookieAuth: [] }],
+        params: idParams,
+        response: {
+          200: z.array(
+            z.object({
+              id: uuidSchema,
+              deviceId: uuidSchema,
+              label: z.string().nullable(),
+              createdAt: z.string(),
+              expiresAt: z.string().nullable(),
+              revokedAt: z.string().nullable(),
+              lastUsedAt: z.string().nullable(),
+            }),
+          ),
+          ...readErrors,
+        },
+      },
+    },
+    async (request) => devicesService.listCredentials(requireAuth(request), request.params.id),
+  );
+
+  r.delete(
+    '/:id/credentials/:credentialId',
+    {
+      preValidation: [app.authenticate, app.authorize('devices:credentials')],
+      schema: {
+        tags: ['Dispositivos'],
+        summary: 'Revoga imediatamente uma chave de acesso IoT',
+        security,
+        params: idParams.extend({ credentialId: uuidSchema }),
+        response: { 200: z.object({ success: z.boolean() }), ...writeErrors },
+      },
+    },
+    async (request) =>
+      devicesService.revokeCredential(
+        requireAuth(request),
+        request.params.id,
+        request.params.credentialId,
+        requestMeta(request),
+      ),
+  );
 }
+
