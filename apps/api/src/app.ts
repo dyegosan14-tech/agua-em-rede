@@ -22,6 +22,8 @@ import { DevicesService } from './modules/devices/devices.service';
 import { healthRoutes } from './modules/health/health.routes';
 import { maintenanceWindowsRoutes } from './modules/maintenance-windows/maintenance-windows.routes';
 import { MaintenanceWindowsService } from './modules/maintenance-windows/maintenance-windows.service';
+import { networkAssetsRoutes } from './modules/network-assets/network-assets.routes';
+import { NetworkAssetsService } from './modules/network-assets/network-assets.service';
 import { organizationsRoutes } from './modules/organizations/organizations.routes';
 import { sectorsRoutes } from './modules/sectors/sectors.routes';
 import { SectorsService } from './modules/sectors/sectors.service';
@@ -103,6 +105,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const telemetryService = new TelemetryService({ db, alerts: alertsService, audit, clock });
   const detectionRulesService = new DetectionRulesService({ db, audit });
   const maintenanceWindowsService = new MaintenanceWindowsService({ db, audit });
+  const networkAssetsService = new NetworkAssetsService({ db });
 
   await app.register((scope) => healthRoutes(scope, { pool: deps.pool, redis: deps.redis }), { prefix: '/health' });
   await app.register(
@@ -120,6 +123,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register((scope) => organizationsRoutes(scope, { db }), { prefix: '/api/organizations' });
   await app.register((scope) => usersRoutes(scope, { usersService }), { prefix: '/api/users' });
   await app.register((scope) => sectorsRoutes(scope, { sectorsService }), { prefix: '/api/sectors' });
+  await app.register((scope) => networkAssetsRoutes(scope, { networkAssetsService }), { prefix: '/api/network-assets' });
   await app.register((scope) => devicesRoutes(scope, { devicesService }), { prefix: '/api/devices' });
   await app.register((scope) => telemetryRoutes(scope, { telemetryService }), { prefix: '/api/telemetry' });
   await app.register((scope) => alertsRoutes(scope, { alertsService }), { prefix: '/api/alerts' });
