@@ -13,3 +13,4 @@ export * from './work-orders';
 export * from './analytics';
 export * from './detection-rules';
 export * from './maintenance-windows';
+export * from './network-assets';
