@@ -106,3 +106,12 @@ Mais: [docs/architecture.md](docs/architecture.md) · [docs/security.md](docs/se
 - Sem testes automatizados de componentes React; a UI foi verificada manualmente (Edge headless), não por suíte.
 - Regra do "último administrador" testada por serviço, não em concorrência real.
 - Sem recuperação de senha por e-mail (a redefinição é feita por um administrador).
+
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por **Dyego Assis** ([@dyegosan14-tech](https://github.com/dyegosan14-tech)).
+
+[![GitHub Profile](https://img.shields.io/badge/GitHub-dyegosan14--tech-181717?style=for-the-badge&logo=github)](https://github.com/dyegosan14-tech)
